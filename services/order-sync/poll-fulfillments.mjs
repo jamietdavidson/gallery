@@ -1,4 +1,13 @@
-import {ORDER_SYNC_POLL, SHIPPING_AUTOMATION} from '../../lib/order-sync/config.js';
+import {
+  ORDER_SYNC_POLL,
+  SHIPPING_AUTOMATION,
+} from '../../lib/order-sync/config.js';
+import {
+  describePollSlots,
+  formatPollSlot,
+  isClockAlignedInterval,
+  msUntilNextPollSlot,
+} from '../../lib/order-sync/poll-schedule.mjs';
 import {listShopifyOrdersUpdatedSince} from '../../lib/order-sync/shopify-admin.mjs';
 import {syncShopifyOrderToAirtable} from '../../lib/order-sync/sync-order.mjs';
 import {listFulfillmentsNeedingLabels} from '../../lib/order-sync/airtable.mjs';
@@ -33,17 +42,63 @@ async function syncRecentShopifyOrders($) {
       console.error(
         `[order-sync] order sync failed for ${order.id ?? 'unknown'}: ${error.message}`,
       );
-      results.push({action: 'failed', shopifyOrderId: order.id, error: error.message});
+      results.push({
+        action: 'failed',
+        shopifyOrderId: order.id,
+        error: error.message,
+      });
     }
   }
 
   return results;
 }
 
+function scheduleDelayMs(from = new Date()) {
+  const {intervalMs, intervalMinutes, alignToClock, timeZone} = ORDER_SYNC_POLL;
+
+  if (alignToClock && isClockAlignedInterval(intervalMinutes)) {
+    return msUntilNextPollSlot(from, {intervalMinutes, timeZone});
+  }
+
+  return intervalMs;
+}
+
+function logPollingSchedule() {
+  const {intervalMs, intervalMinutes, alignToClock, timeZone, lookbackHours} =
+    ORDER_SYNC_POLL;
+
+  if (alignToClock && isClockAlignedInterval(intervalMinutes)) {
+    const nextAt = new Date(Date.now() + scheduleDelayMs());
+    console.log(
+      `[order-sync] Polling Shopify orders + Airtable every ${intervalMinutes} minutes ` +
+        `at ${describePollSlots(intervalMinutes)} (${timeZone}, lookback ${lookbackHours}h)`,
+    );
+    console.log(
+      `[order-sync] Next poll at ${formatPollSlot(nextAt, timeZone)}`,
+    );
+    return;
+  }
+
+  if (alignToClock && !isClockAlignedInterval(intervalMinutes)) {
+    console.warn(
+      `[order-sync] ORDER_SYNC_POLL_ALIGN_CLOCK is on but ${intervalMinutes} minutes does not divide the hour; ` +
+        `using fixed ${intervalMs / 1000}s interval instead`,
+    );
+  }
+
+  console.log(
+    `[order-sync] Polling Shopify orders + Airtable every ${intervalMs / 1000}s (lookback ${lookbackHours}h)`,
+  );
+}
+
 /**
  * Outbound polling only — Shopify orders, Airtable fulfillments, and pickups.
  */
-export function startOrderSyncPolling({intervalMs = ORDER_SYNC_POLL.intervalMs, onResult, onError} = {}) {
+export function startOrderSyncPolling({
+  intervalMs = ORDER_SYNC_POLL.intervalMs,
+  onResult,
+  onError,
+} = {}) {
   if (!intervalMs || intervalMs < 60_000) {
     console.log(
       '[order-sync] Polling disabled (ORDER_SYNC_POLL_INTERVAL_MS must be >= 60000)',
@@ -51,15 +106,20 @@ export function startOrderSyncPolling({intervalMs = ORDER_SYNC_POLL.intervalMs, 
     return () => {};
   }
 
-  console.log(
-    `[order-sync] Polling Shopify orders + Airtable every ${intervalMs / 1000}s (lookback ${ORDER_SYNC_POLL.lookbackHours}h)`,
-  );
+  logPollingSchedule();
   if (!SHIPPING_AUTOMATION.isEnabled()) {
     console.log(`[order-sync] ${SHIPPING_AUTOMATION.disabledReason}`);
   }
 
   let stopped = false;
   let ticking = false;
+  let timeoutId = null;
+
+  function scheduleNextTick(from = new Date()) {
+    if (stopped) return;
+    const delayMs = scheduleDelayMs(from);
+    timeoutId = setTimeout(tick, delayMs);
+  }
 
   async function tick() {
     if (ticking) return;
@@ -69,7 +129,9 @@ export function startOrderSyncPolling({intervalMs = ORDER_SYNC_POLL.intervalMs, 
       const $ = {};
       const orderResults = await syncRecentShopifyOrders($);
       if (orderResults.some((result) => result.action === 'created')) {
-        console.log(`[order-sync] synced ${orderResults.length} Shopify order(s)`);
+        console.log(
+          `[order-sync] synced ${orderResults.length} Shopify order(s)`,
+        );
       }
 
       if (SHIPPING_AUTOMATION.isEnabled()) {
@@ -80,19 +142,27 @@ export function startOrderSyncPolling({intervalMs = ORDER_SYNC_POLL.intervalMs, 
         ]);
 
         if (labelRecords.length > 0) {
-          console.log(`[order-sync] ${labelRecords.length} fulfillment(s) need labels`);
+          console.log(
+            `[order-sync] ${labelRecords.length} fulfillment(s) need labels`,
+          );
         }
         if (linkRecords.length > 0) {
-          console.log(`[order-sync] ${linkRecords.length} fulfillment(s) need pickup links`);
+          console.log(
+            `[order-sync] ${linkRecords.length} fulfillment(s) need pickup links`,
+          );
         }
         if (scheduleRecords.length > 0) {
-          console.log(`[order-sync] ${scheduleRecords.length} pickup(s) need carrier scheduling`);
+          console.log(
+            `[order-sync] ${scheduleRecords.length} pickup(s) need carrier scheduling`,
+          );
         }
 
         for (const record of labelRecords) {
           const result = await createLabelForFulfillment(record.id);
           if (result.action === 'labeled') {
-            console.log(`[order-sync] labeled ${record.id} tracking=${result.trackingNumber}`);
+            console.log(
+              `[order-sync] labeled ${record.id} tracking=${result.trackingNumber}`,
+            );
           } else if (result.action === 'failed') {
             console.error(`[order-sync] failed ${record.id}: ${result.error}`);
           } else if (result.action === 'skipped' && result.reason) {
@@ -120,9 +190,13 @@ export function startOrderSyncPolling({intervalMs = ORDER_SYNC_POLL.intervalMs, 
               `[order-sync] scheduled pickup ${record.id} confirmation=${result.confirmation ?? 'n/a'}`,
             );
           } else if (result.action === 'failed') {
-            console.error(`[order-sync] pickup schedule failed ${record.id}: ${result.error}`);
+            console.error(
+              `[order-sync] pickup schedule failed ${record.id}: ${result.error}`,
+            );
           } else if (result.action === 'skipped' && result.reason) {
-            console.log(`[order-sync] skipped pickup ${record.id}: ${result.reason}`);
+            console.log(
+              `[order-sync] skipped pickup ${record.id}: ${result.reason}`,
+            );
           }
           onResult?.({pickupRecordId: record.id, result});
         }
@@ -138,16 +212,15 @@ export function startOrderSyncPolling({intervalMs = ORDER_SYNC_POLL.intervalMs, 
       onError?.(error);
     } finally {
       ticking = false;
-      if (!stopped) {
-        setTimeout(tick, intervalMs);
-      }
+      scheduleNextTick(new Date());
     }
   }
 
-  tick();
+  scheduleNextTick();
 
   return () => {
     stopped = true;
+    if (timeoutId) clearTimeout(timeoutId);
   };
 }
 
