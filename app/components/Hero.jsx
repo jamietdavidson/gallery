@@ -1,57 +1,9 @@
-import {useEffect, useState} from 'react';
-import {Link} from 'react-router';
-import {printsPath} from '~/lib/paths';
-import {cn} from '~/lib/utils';
-import {type} from '~/lib/typography';
-
-const heroImages = [
-  'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1920&q=80',
-  'https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=1920&q=80',
-  'https://images.unsplash.com/photo-1471922694854-ff1b63b20054?w=1920&q=80',
-];
+import {HeroVideoBackground} from '~/components/HeroVideoBackground';
 
 export function Hero() {
-  const [currentImage, setCurrentImage] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentImage((prev) => (prev + 1) % heroImages.length);
-    }, 6000);
-    return () => clearInterval(interval);
-  }, []);
-
   return (
     <section className="relative h-screen w-full overflow-hidden">
-      {heroImages.map((src, index) => (
-        <div
-          key={src}
-          className="absolute inset-0 transition-opacity duration-[2000ms] ease-in-out"
-          style={{opacity: index === currentImage ? 1 : 0}}
-        >
-          <div
-            className="absolute inset-0 bg-cover bg-center scale-105"
-            style={{backgroundImage: `url(${src})`}}
-          />
-        </div>
-      ))}
-      <div className="absolute inset-0 bg-black/30" />
-      <p
-        aria-live="polite"
-        className={cn(type.body.md, 'absolute bottom-6 left-6 z-10 font-medium text-white')}
-      >
-        {currentImage + 1}/{heroImages.length}
-      </p>
-      <div className="relative z-10 flex flex-col items-center justify-center h-full text-white text-center px-6">
-        <h2 className={cn(type.title.xl, 'max-w-3xl text-white')}>
-          Take a long look - curated art meant to inspire.
-        </h2>
-        <Link
-          to={printsPath()}
-          className={cn(type.cta, 'mt-10 inline-block border border-white/60 px-8 py-3 hover:bg-white hover:text-neutral-900 transition-all duration-300')}
-        >
-          Shop Collection
-        </Link>
-      </div>
+      <HeroVideoBackground className="scale-105" />
     </section>
   );
 }

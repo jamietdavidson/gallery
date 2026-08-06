@@ -3,6 +3,7 @@ import {useEffect, useState} from 'react';
 import {motion, useReducedMotion} from 'framer-motion';
 import {Money} from '@shopify/hydrogen';
 import {FavoriteButton} from '~/components/FavoriteButton';
+import {HeroVideoBackground} from '~/components/HeroVideoBackground';
 import {PaginatedResourceSection} from '~/components/PaginatedResourceSection';
 import {FramedPicture} from '~/components/FramedPicture';
 import {
@@ -101,10 +102,7 @@ export function ProductCard({
   };
 
   return (
-    <article
-      ref={warmupRef}
-      className={cn('block h-full w-full', className)}
-    >
+    <article ref={warmupRef} className={cn('block h-full w-full', className)}>
       <div
         className="relative"
         onMouseEnter={() => {
@@ -150,7 +148,9 @@ export function ProductCard({
         className={cn(
           'flex flex-col',
           isCompact ? 'px-2 pt-3 pb-4' : 'px-2.5 pt-3.5 pb-6',
-          textAlign === 'center' ? 'items-center text-center' : 'items-start text-left',
+          textAlign === 'center'
+            ? 'items-center text-center'
+            : 'items-start text-left',
         )}
       >
         <ProductCardContent
@@ -236,7 +236,9 @@ function SplitProductCard({
         className={cn(
           'flex flex-col',
           isCompact ? 'px-2 pt-3 pb-4' : 'px-2.5 pt-3.5 pb-6',
-          textAlign === 'center' ? 'items-center text-center' : 'items-start text-left',
+          textAlign === 'center'
+            ? 'items-center text-center'
+            : 'items-start text-left',
         )}
       >
         <ProductCardContent
@@ -266,9 +268,7 @@ function ProductCardContent({product, showPrice = true, size = 'default'}) {
       <h3
         className={cn(
           'mb-[0.2rem] font-medium leading-snug text-neutral-800',
-          isCompact
-            ? type.body.sm
-            : cn(type.body.lg, 'md:text-body-xl'),
+          isCompact ? type.body.sm : cn(type.body.lg, 'md:text-body-xl'),
         )}
       >
         <Link
@@ -327,10 +327,7 @@ export function CatalogPageHeader({title, description}) {
       <h1 className={type.title.md}>{title}</h1>
       {description ? (
         <p
-          className={cn(
-            type.body.md,
-            'mx-auto mt-4 max-w-xl text-neutral-500',
-          )}
+          className={cn(type.body.md, 'mx-auto mt-4 max-w-xl text-neutral-500')}
         >
           {description}
         </p>
@@ -399,7 +396,11 @@ function LazyProductGridBody({
             animate={{opacity: 1, y: 0}}
             transition={{
               ...LAZY_GRID_ITEM_TRANSITION,
-              delay: lazyGridItemDelay(index, lazyLoadBatchSize, prefersReducedMotion),
+              delay: lazyGridItemDelay(
+                index,
+                lazyLoadBatchSize,
+                prefersReducedMotion,
+              ),
             }}
           >
             {renderProductGridCard({product, index, ...cardProps})}
@@ -416,7 +417,9 @@ function LazyProductGridBody({
         >
           <motion.span
             className={cn(type.body.sm, 'text-neutral-400')}
-            animate={prefersReducedMotion ? undefined : {opacity: [0.35, 1, 0.35]}}
+            animate={
+              prefersReducedMotion ? undefined : {opacity: [0.35, 1, 0.35]}
+            }
             transition={
               prefersReducedMotion
                 ? undefined
@@ -518,9 +521,7 @@ export function ProductGrid({
     <section className="w-full">
       {title ? (
         <div className="flex items-center justify-center px-6 py-8 text-center md:py-10">
-          <h2 className={cn(type.title.sm, 'text-neutral-900')}>
-            {title}
-          </h2>
+          <h2 className={cn(type.title.sm, 'text-neutral-900')}>{title}</h2>
         </div>
       ) : null}
       {isEmpty && emptyMessage ? (
@@ -557,25 +558,7 @@ export function ProductGrid({
 export function VideoSection() {
   return (
     <section className="relative h-[60vh] w-full overflow-hidden bg-neutral-900 md:h-[80vh]">
-      <div
-        className="absolute inset-0 bg-cover bg-center opacity-70"
-        style={{
-          backgroundImage:
-            'url(https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=1920&q=80)',
-        }}
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/20" />
-      <div className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center text-white">
-        <h2 className={cn(type.title.sm, 'font-light text-white md:text-title-lg-lg')}>
-          Curated photography for your space
-        </h2>
-        <Link
-          to={printsPath()}
-          className={cn(type.cta, 'mt-8 inline-block border border-white/50 px-8 py-3 transition-all duration-300 hover:bg-white hover:text-neutral-900')}
-        >
-          Explore
-        </Link>
-      </div>
+      <HeroVideoBackground />
     </section>
   );
 }
