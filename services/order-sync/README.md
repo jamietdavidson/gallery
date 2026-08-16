@@ -17,7 +17,7 @@ There are no public webhook endpoints. Remove the Railway public domain if you d
 1. **Shopify orders** — every 10 minutes on the clock (:00, :10, :20, … in shop timezone), fetch orders updated in the last `ORDER_POLL_LOOKBACK_HOURS` (default 48h) → create/update **Orders** + **Fullfillments** rows.
 2. **In Progress** — buy EasyPost parcel label via the standard API → **Shipping: Label** + Shopify `fulfillmentCreate` tracking. Museum-tier can optionally use Enterprise LTL when enabled.
 3. **Pickup Requested** — link fulfillment to next **Pickups** row (**Pending**).
-4. **Pickups → Requested** — EasyPost schedules carrier pickup → **Scheduled**.
+4. **Pickups → Requested** — EasyPost schedules carrier pickup → **Scheduled** (or **Failed** on error).
 5. After the pickup window passes → **Confirmed**.
 
 Labels are **not** purchased at checkout time.
@@ -63,7 +63,7 @@ Base `appC7O4qp56Rdaj7c`. Field names are in `lib/order-sync/config.js`.
 | ----------------- | ----------------------------------------------------------- |
 | **Orders**        | One row per Shopify order                                   |
 | **Fullfillments** | One row per physical unit                                   |
-| **Pickups**       | **Pending** → **Requested** → **Scheduled** → **Confirmed** |
+| **Pickups**       | **Pending** → **Requested** → **Scheduled** → **Confirmed** (or **Failed** on scheduling error). Add **Failed** as a Status option in Airtable; until then, failures are recorded in **Notes** as `schedule_failed:…` and skipped on future polls. To retry, clear that line and set Status back to **Requested**. |
 
 No Airtable automations need to call Railway — the poller watches status fields directly.
 

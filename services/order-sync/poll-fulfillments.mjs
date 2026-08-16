@@ -191,7 +191,7 @@ export function startOrderSyncPolling({
             );
           } else if (result.action === 'failed') {
             console.error(
-              `[order-sync] pickup schedule failed ${record.id}: ${result.error}`,
+              `[order-sync] pickup schedule failed ${record.id}: ${result.error} (marked Failed)`,
             );
           } else if (result.action === 'skipped' && result.reason) {
             console.log(
