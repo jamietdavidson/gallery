@@ -1,4 +1,4 @@
-import {Link, NavLink} from 'react-router';
+import {Link, NavLink, useLocation} from 'react-router';
 import {useEffect, useLayoutEffect, useRef, useState} from 'react';
 import {useOptimisticCart} from '@shopify/hydrogen';
 import {motion} from 'framer-motion';
@@ -32,14 +32,17 @@ const TOPBAR_ICON_STROKE_CLASS =
 function getNavLinkClass(color) {
   return cn(
     type.nav,
-    'cursor-pointer underline-offset-4 hover:underline',
+    'cursor-pointer underline-offset-4 transition-colors duration-200 hover:underline',
     color === 'white' ? 'text-white' : 'text-neutral-800',
   );
 }
 
 /** @param {import('~/components/AppPageLayout').TopbarColor} color */
 function getIconClass(color) {
-  return color === 'white' ? 'text-white' : 'text-neutral-900';
+  return cn(
+    'transition-colors duration-200',
+    color === 'white' ? 'text-white' : 'text-neutral-900',
+  );
 }
 
 /**
@@ -104,7 +107,10 @@ function useScrollDirectionHeader({
     const onScroll = () => {
       const currentScrollY = getPageScrollTop();
       const atTop = currentScrollY <= SCROLL_TOP_THRESHOLD;
-      const progress = Math.min(Math.max(currentScrollY / SCROLL_FADE_DISTANCE, 0), 1);
+      const progress = Math.min(
+        Math.max(currentScrollY / SCROLL_FADE_DISTANCE, 0),
+        1,
+      );
       const delta = currentScrollY - lastScrollY.current;
 
       if (atTop || committedDirection.current === 'down' || mode === 'filled') {
@@ -186,11 +192,7 @@ function useAnimatedSurfaceStyle(surfaceStyle, color, mode) {
   const [style, setStyle] = useState(surfaceStyle);
   const [transitioning, setTransitioning] = useState(false);
   const configRef = useRef({color, mode});
-  const {
-    backgroundColor,
-    backdropFilter,
-    WebkitBackdropFilter,
-  } = surfaceStyle;
+  const {backgroundColor, backdropFilter, WebkitBackdropFilter} = surfaceStyle;
 
   useLayoutEffect(() => {
     const nextStyle = {
@@ -225,13 +227,7 @@ function useAnimatedSurfaceStyle(surfaceStyle, color, mode) {
       stylesEqual(current, nextStyle) ? current : nextStyle,
     );
     return undefined;
-  }, [
-    backgroundColor,
-    backdropFilter,
-    WebkitBackdropFilter,
-    color,
-    mode,
-  ]);
+  }, [backgroundColor, backdropFilter, WebkitBackdropFilter, color, mode]);
 
   const transition = transitioning
     ? `background-color ${SURFACE_TRANSITION_MS}ms ease-out, backdrop-filter ${SURFACE_TRANSITION_MS}ms ease-out, -webkit-backdrop-filter ${SURFACE_TRANSITION_MS}ms ease-out`
@@ -257,6 +253,8 @@ function stylesEqual(a, b) {
  * }}
  */
 export function Header({color = 'black', mode = 'filled', autohide = true}) {
+  const location = useLocation();
+  const isHomePage = location.pathname === '/';
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isRightIconsHovered, setIsRightIconsHovered] = useState(false);
   const [hoveredRightIcon, setHoveredRightIcon] = useState(
@@ -270,11 +268,13 @@ export function Header({color = 'black', mode = 'filled', autohide = true}) {
     forceVisible: sidebarOpen,
     mode,
   });
-  const navClass = getNavLinkClass(color);
-  const iconClass = getIconClass(color);
   const surfaceStyle = getHeaderSurfaceStyle({color, mode, backgroundProgress});
   const {style: animatedSurfaceStyle, transition: surfaceTransition} =
     useAnimatedSurfaceStyle(surfaceStyle, color, mode);
+  const effectiveColor =
+    isHomePage && !sidebarOpen && backgroundProgress === 0 ? 'white' : color;
+  const navClass = getNavLinkClass(effectiveColor);
+  const iconClass = getIconClass(effectiveColor);
   const showTopbarBorder =
     mode === 'filled' ||
     (mode === 'transparent' && color === 'black' && backgroundProgress > 0);
@@ -370,7 +370,7 @@ export function Header({color = 'black', mode = 'filled', autohide = true}) {
             to="/"
             className="col-start-2 row-start-1 justify-self-center text-center"
           >
-            <Logo color={color} format="long" />
+            <Logo color={effectiveColor} format="long" />
           </Link>
 
           <div
@@ -394,13 +394,13 @@ export function Header({color = 'black', mode = 'filled', autohide = true}) {
               />
             </NavLink>
             <FavouritesLink
-              color={color}
+              color={effectiveColor}
               dimClass={getRightIconDimClass('favourites')}
               hoverHandlers={getRightIconHoverHandlers('favourites')}
             />
             <CartBadge
               count={cart?.totalQuantity ?? 0}
-              color={color}
+              color={effectiveColor}
               onClick={() => openAside('cart')}
               dimClass={getRightIconDimClass('cart')}
               hoverHandlers={getRightIconHoverHandlers('cart')}
@@ -439,7 +439,10 @@ function FavouritesLink({color, dimClass, hoverHandlers}) {
       aria-label="Favourites"
       {...hoverHandlers}
     >
-      <Heart size={HEADER_ACTION_ICON_SIZE} strokeWidth={HEADER_ACTION_ICON_STROKE} />
+      <Heart
+        size={HEADER_ACTION_ICON_SIZE}
+        strokeWidth={HEADER_ACTION_ICON_STROKE}
+      />
       {hasHydrated && hasReconciled && count > 0 ? (
         <span
           className={cn(
@@ -477,7 +480,10 @@ function CartBadge({count, color, onClick, dimClass, hoverHandlers}) {
       aria-label="Open cart"
       {...hoverHandlers}
     >
-      <ShoppingBag size={HEADER_ACTION_ICON_SIZE} strokeWidth={HEADER_ACTION_ICON_STROKE} />
+      <ShoppingBag
+        size={HEADER_ACTION_ICON_SIZE}
+        strokeWidth={HEADER_ACTION_ICON_STROKE}
+      />
       {count > 0 && (
         <span
           className={cn(
