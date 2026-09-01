@@ -16,30 +16,32 @@ On each deletion pass, the service compares Airtable rows to Shopify entities an
 
 ## Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/health` | Liveness check + current poll interval |
+| Method | Path      | Description                            |
+| ------ | --------- | -------------------------------------- |
+| `GET`  | `/health` | Liveness check + current poll interval |
 
 Optional manual sync (for debugging): `POST /sync/:recordId` — set `SYNC_SECRET` and pass `Authorization: Bearer <secret>`.
 
 ## Environment variables
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `AIRTABLE_PAT` | yes | Airtable personal access token |
-| `SHOPIFY_ACCESS_TOKEN` | yes | Shopify Admin API token (`shpat_…`) for `thelonglookco` |
-| `POLL_INTERVAL_MS` | no | Default `60000` (1 minute). Minimum `60000`. |
-| `SYNC_CONCURRENCY` | no | Parallel Shopify/Airtable ops per job (default `5`, max `20`). |
-| `DELETION_POLL_INTERVAL_MS` | no | How often to run orphan pruning (default `300000` / 5 min). |
-| `SHOPIFY_SHOP_ID` | no | Default `thelonglookco` |
-| `SYNC_SECRET` | no | Optional auth for manual `POST /sync/…` only |
-| `PRINT_IMAGE_MAX_PX` | no | Long-edge cap before WebP encode (default `2400`) |
-| `PRINT_IMAGE_WEBP_QUALITY` | no | WebP quality 1–100 (default `82`) |
-| `PORT` | no | Set by Railway |
-| `SHOPIFY_ALL_PRINTS_COLLECTION_HANDLE` | no | Smart collection handle for all prints (default `fine-art-prints`) |
-| `SHOPIFY_ALL_PRINTS_COLLECTION_TITLE` | no | Title for the all-prints smart collection (default `Fine Art Prints`) |
+| Variable                               | Required | Description                                                           |
+| -------------------------------------- | -------- | --------------------------------------------------------------------- |
+| `AIRTABLE_PAT`                         | yes      | Airtable personal access token                                        |
+| `SHOPIFY_ACCESS_TOKEN`                 | yes      | Shopify Admin API token (`shpat_…`) for `thelonglookco`               |
+| `POLL_INTERVAL_MS`                     | no       | Default `60000` (1 minute). Minimum `60000`.                          |
+| `SYNC_CONCURRENCY`                     | no       | Parallel Shopify/Airtable ops per job (default `5`, max `20`).        |
+| `DELETION_POLL_INTERVAL_MS`            | no       | How often to run orphan pruning (default `300000` / 5 min).           |
+| `SHOPIFY_SHOP_ID`                      | no       | Default `thelonglookco`                                               |
+| `SYNC_SECRET`                          | no       | Optional auth for manual `POST /sync/…` only                          |
+| `PRINT_IMAGE_MAX_PX`                   | no       | Long-edge cap before WebP encode (default `2400`)                     |
+| `PRINT_IMAGE_WEBP_QUALITY`             | no       | WebP quality 1–100 (default `82`)                                     |
+| `PORT`                                 | no       | Set by Railway                                                        |
+| `SHOPIFY_ALL_PRINTS_COLLECTION_HANDLE` | no       | Smart collection handle for all prints (default `fine-art-prints`)    |
+| `SHOPIFY_ALL_PRINTS_COLLECTION_TITLE`  | no       | Title for the all-prints smart collection (default `Fine Art Prints`) |
 
 Print images are downloaded from Airtable, resized, encoded as WebP, and uploaded to Shopify via staged upload. Re-sync skips image processing when the Airtable attachment id is unchanged (`print.picture_source_id` metafield).
+
+Artist **Headshot** attachments sync to the `portrait` field on artist metaobjects (same WebP pipeline). Add an optional `portrait_source_id` single-line text field on the artist metaobject definition to skip re-uploads when the headshot is unchanged.
 
 ### Shipping packages (box dimensions)
 

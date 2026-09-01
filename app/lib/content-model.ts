@@ -39,7 +39,12 @@ export interface Artist {
   bio?: string | null;
   birthYear?: number | null;
   location?: string | null;
-  portrait?: {url: string; altText?: string | null; width?: number | null; height?: number | null} | null;
+  portrait?: {
+    url: string;
+    altText?: string | null;
+    width?: number | null;
+    height?: number | null;
+  } | null;
   instagramHandle?: string | null;
   tags: Tag[];
   /** Resolved from metaobjects(type: "picture") filtered by artist */
@@ -52,7 +57,12 @@ export interface Collection {
   title: string;
   airtableRecordId?: string | null;
   description?: string | null;
-  coverImage?: {url: string; altText?: string | null; width?: number | null; height?: number | null} | null;
+  coverImage?: {
+    url: string;
+    altText?: string | null;
+    width?: number | null;
+    height?: number | null;
+  } | null;
   tags: Tag[];
   /** Resolved from metaobjects(type: "picture") filtered by collections */
   pictures?: Picture[];
@@ -63,7 +73,12 @@ export interface Picture {
   handle: string;
   title: string;
   description?: string | null;
-  image: {url: string; altText?: string | null; width?: number | null; height?: number | null};
+  image: {
+    url: string;
+    altText?: string | null;
+    width?: number | null;
+    height?: number | null;
+  };
   artist: Artist;
   collections: Collection[];
   tags: Tag[];
@@ -86,6 +101,7 @@ export const CONTENT_FIELDS = {
     birthYear: 'birth_year',
     location: 'location',
     portrait: 'portrait',
+    portraitSourceId: 'portrait_source_id',
     instagramHandle: 'instagram_handle',
     tags: 'tags',
     airtableRecordId: 'airtable_record_id',
