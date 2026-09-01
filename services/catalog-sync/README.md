@@ -10,6 +10,8 @@ The service **polls** Airtable on an interval (default 60s, starting immediately
 
 Queued **variants** update shipping packages and push the catalog (prices, dimensions, new Size/Frame/Mount combinations) to every Fine Art Print product in parallel (`SYNC_CONCURRENCY`, default 5). Print sync uses only **Committed** variant rows.
 
+If a variant sync tick is interrupted (deploy restart, crash), rows can be left in **Processing**. The poller now resets those to **Queued** on the next tick and rolls back in-flight rows to **Queued** when a sync step fails.
+
 On each deletion pass, the service compares Airtable rows to Shopify entities and removes orphans: print products (by record id or handle), artist/collection metaobjects (by record id, slugified name, or stable handle), matching native Shopify collections (by `airtable.record_id`), and product variants (by `airtable.record_id` or Size/Frame/Mount).
 
 **Storefront vs Admin:** Collection pages on the site read **collection metaobjects** only. Catalog sync also mirrors each editorial collection to a native Shopify collection (same handle, `airtable.record_id` metafield) and keeps print membership in sync. A smart **Fine Art Prints** collection (`product_type` rule) is created automatically for Shopify Admin merchandising.
