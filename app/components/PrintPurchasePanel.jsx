@@ -1,4 +1,11 @@
-import {useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {createPortal} from 'react-dom';
 import {Link, useNavigate, useSearchParams} from 'react-router';
 import {
@@ -14,7 +21,10 @@ import {
 import {AnimatePresence, motion} from 'framer-motion';
 import {getProductOptions, Money} from '@shopify/hydrogen';
 import {SizeOptionTable} from '~/components/SizeOptionTable';
-import {PrintProductInfoAside, PrintProductInfoListItem} from '~/components/PrintProductInfoTabs';
+import {
+  PrintProductInfoAside,
+  PrintProductInfoListItem,
+} from '~/components/PrintProductInfoTabs';
 import {AddToCartButton} from '~/components/AddToCartButton';
 import {FramedPicture} from '~/components/FramedPicture';
 import {
@@ -31,6 +41,7 @@ import {
   getPrintVariantPool,
   getSummaryStripFitLongSideCqi,
   getSummaryStripViewportEstimate,
+  resolvePrintVariantInPool,
   sortSizeOptionValues,
 } from '~/lib/framed-picture';
 import {
@@ -151,23 +162,22 @@ export function PrintPurchasePanel({
     return fromOption?.length ? fromOption : [...DEFAULT_MOUNT_OPTIONS];
   }, [mountOption]);
 
-  const cartLines =
-    selectedVariant
-      ? [
-          {
-            merchandiseId: selectedVariant.id,
-            quantity: 1,
-            selectedVariant,
-            attributes: getPrintLineAttributes({
-              printHandle,
-              artistName,
-              frame: selectedFrame,
-              mount: selectedMount,
-              variant: selectedVariant,
-            }),
-          },
-        ]
-      : [];
+  const cartLines = selectedVariant
+    ? [
+        {
+          merchandiseId: selectedVariant.id,
+          quantity: 1,
+          selectedVariant,
+          attributes: getPrintLineAttributes({
+            printHandle,
+            artistName,
+            frame: selectedFrame,
+            mount: selectedMount,
+            variant: selectedVariant,
+          }),
+        },
+      ]
+    : [];
 
   const analytics = {
     products: [
@@ -272,33 +282,33 @@ export function PrintPurchasePanel({
           </AddToCartButton>
         }
       >
-      {sizeOption && sizeOption.optionValues.length > 0 ? (
-        <SizeTable
-          option={sizeOption}
-          orientation={orientation}
-          frame={selectedFrame}
-          mount={selectedMount}
-          variantPool={variantPool}
-          onSelect={selectOptionValue}
-        />
-      ) : null}
+        {sizeOption && sizeOption.optionValues.length > 0 ? (
+          <SizeTable
+            option={sizeOption}
+            orientation={orientation}
+            frame={selectedFrame}
+            mount={selectedMount}
+            variantPool={variantPool}
+            onSelect={selectOptionValue}
+          />
+        ) : null}
 
-      <FrameMountOptions>
-        <FrameSwatches
-          option={frameOption}
-          selectedFrame={selectedFrame}
-          onSelectShopify={selectFrameShopify}
-          onSelectFallback={selectFrameFallback}
-        />
+        <FrameMountOptions>
+          <FrameSwatches
+            option={frameOption}
+            selectedFrame={selectedFrame}
+            onSelectShopify={selectFrameShopify}
+            onSelectFallback={selectFrameFallback}
+          />
 
-        <MountToggle
-          option={mountOption}
-          selectedMount={selectedMount}
-          onSelectShopify={selectMountShopify}
-          onSelectFallback={selectMountFallback}
-        />
-      </FrameMountOptions>
-    </PrintPurchaseDock>
+          <MountToggle
+            option={mountOption}
+            selectedMount={selectedMount}
+            onSelectShopify={selectMountShopify}
+            onSelectFallback={selectMountFallback}
+          />
+        </FrameMountOptions>
+      </PrintPurchaseDock>
 
       <PrintProductInfoAside
         selectedFrame={selectedFrame}
@@ -398,19 +408,18 @@ export function PrintPurchaseDock({
 }) {
   const {isOpen: asideOpen} = useAside();
   const [mounted, setMounted] = useState(false);
-  const [isMobileViewport, setIsMobileViewport] = useState(() =>
-    typeof window !== 'undefined' &&
-    window.matchMedia('(max-width: 767px)').matches,
+  const [isMobileViewport, setIsMobileViewport] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      window.matchMedia('(max-width: 767px)').matches,
   );
   const purchasePanelRef = useRef(null);
   const purchasePanelInView = useGalleryInView(purchasePanelRef, 0.15);
   const showMobileSummary =
     !expanded && !galleryInView && summary && !asideOpen;
-  const showDesktopSummary =
-    !purchasePanelInView && summary && !asideOpen;
+  const showDesktopSummary = !purchasePanelInView && summary && !asideOpen;
   const showSummary =
-    mounted &&
-    (isMobileViewport ? showMobileSummary : showDesktopSummary);
+    mounted && (isMobileViewport ? showMobileSummary : showDesktopSummary);
   const showCollapsedCta = !expanded && galleryInView && !asideOpen;
   const [shellExpanded, setShellExpanded] = useState(expanded);
   const [contentInFlow, setContentInFlow] = useState(expanded);
@@ -500,10 +509,7 @@ export function PrintPurchaseDock({
           setButtonHeight(measuredButtonHeight);
         }
 
-        if (
-          (measuredButtonHeight === 0 || fullHeight === 0) &&
-          attempts < 6
-        ) {
+        if ((measuredButtonHeight === 0 || fullHeight === 0) && attempts < 6) {
           attempts += 1;
           requestAnimationFrame(applyHeights);
           return;
@@ -618,10 +624,7 @@ export function PrintPurchaseDock({
       onClick={onToggle}
       aria-expanded={expanded}
     >
-      <span
-        aria-hidden
-        className="size-2 shrink-0 rounded-full bg-[#3b82f6]"
-      />
+      <span aria-hidden className="size-2 shrink-0 rounded-full bg-[#3b82f6]" />
       <span className="truncate">Select Size, Frame &amp; Mount</span>
       {expanded ? (
         <ChevronUp className="size-4 shrink-0" strokeWidth={1.75} />
@@ -685,13 +688,9 @@ export function PrintPurchaseDock({
               <div
                 className={cn(
                   'bg-white',
-                  contentInFlow
-                    ? 'relative'
-                    : 'absolute inset-x-0',
+                  contentInFlow ? 'relative' : 'absolute inset-x-0',
                 )}
-                style={
-                  contentInFlow ? undefined : {top: buttonHeight}
-                }
+                style={contentInFlow ? undefined : {top: buttonHeight}}
               >
                 <div ref={contentRef}>
                   <div className="shrink-0 p-0">{children}</div>
@@ -723,7 +722,9 @@ export function PrintPurchaseDock({
 
   return (
     <>
-      {mounted && isMobileViewport ? createPortal(mobileDock, document.body) : null}
+      {mounted && isMobileViewport
+        ? createPortal(mobileDock, document.body)
+        : null}
       {mounted && !isMobileViewport
         ? createPortal(desktopSummaryDock, document.body)
         : null}
@@ -877,11 +878,17 @@ export function PrintFeatureList() {
   return (
     <ul className="space-y-3 text-sm text-neutral-700">
       <li className="flex items-start gap-3">
-        <Award className="mt-0.5 size-4 shrink-0 text-neutral-400" strokeWidth={1.5} />
+        <Award
+          className="mt-0.5 size-4 shrink-0 text-neutral-400"
+          strokeWidth={1.5}
+        />
         <span>Archival pigment print on cotton rag paper</span>
       </li>
       <li className="flex items-start gap-3">
-        <Frame className="mt-0.5 size-4 shrink-0 text-neutral-400" strokeWidth={1.5} />
+        <Frame
+          className="mt-0.5 size-4 shrink-0 text-neutral-400"
+          strokeWidth={1.5}
+        />
         <span>
           <Link to="/about" className="underline underline-offset-2">
             Frame included
@@ -889,15 +896,24 @@ export function PrintFeatureList() {
         </span>
       </li>
       <li className="flex items-start gap-3">
-        <Layers className="mt-0.5 size-4 shrink-0 text-neutral-400" strokeWidth={1.5} />
+        <Layers
+          className="mt-0.5 size-4 shrink-0 text-neutral-400"
+          strokeWidth={1.5}
+        />
         <span>Six sizes available</span>
       </li>
       <li className="flex items-start gap-3 text-neutral-600">
-        <Truck className="mt-0.5 size-4 shrink-0 text-neutral-400" strokeWidth={1.5} />
+        <Truck
+          className="mt-0.5 size-4 shrink-0 text-neutral-400"
+          strokeWidth={1.5}
+        />
         <span>Delivered in 14 business days</span>
       </li>
       <li className="flex items-start gap-3 text-neutral-600">
-        <Globe className="mt-0.5 size-4 shrink-0 text-neutral-400" strokeWidth={1.5} />
+        <Globe
+          className="mt-0.5 size-4 shrink-0 text-neutral-400"
+          strokeWidth={1.5}
+        />
         <span>Printed and framed locally in Canada</span>
       </li>
       <PrintProductInfoListItem />
@@ -921,7 +937,9 @@ function SizeTable({option, orientation, frame, mount, variantPool, onSelect}) {
   return (
     <SizeOptionTable
       rows={values.map((value) => {
-        const variant = value.firstSelectableVariant;
+        const variant =
+          resolvePrintVariantInPool(variantPool, value.name, frame, mount) ??
+          value.firstSelectableVariant;
         const spec = variant
           ? getFramedPictureSpecFromVariant(
               variant,
@@ -964,8 +982,9 @@ function FrameSwatches({
 }) {
   const useShopify = Boolean(option?.optionValues?.length);
   const shopifyValues =
-    option?.optionValues.filter((value) => !isExcludedFrameOption(value.name)) ??
-    [];
+    option?.optionValues.filter(
+      (value) => !isExcludedFrameOption(value.name),
+    ) ?? [];
   const fallbackValues = DEFAULT_FRAME_OPTIONS.map((name) => ({
     name,
     selected: name.toLowerCase() === selectedFrame.toLowerCase(),
@@ -1014,10 +1033,10 @@ function FrameSwatches({
                 }
                 className={cn(
                   'flex h-8 min-h-0 min-w-0 flex-1 items-center justify-center transition-colors md:size-11 md:flex-none',
-                  selected
-                    ? 'bg-neutral-100'
-                    : 'bg-white hover:bg-neutral-50',
-                  useShopify && !value.exists && 'cursor-not-allowed opacity-40',
+                  selected ? 'bg-neutral-100' : 'bg-white hover:bg-neutral-50',
+                  useShopify &&
+                    !value.exists &&
+                    'cursor-not-allowed opacity-40',
                 )}
                 aria-label={value.name}
                 title={value.name}
@@ -1152,7 +1171,9 @@ function MountToggle({
                   selected
                     ? 'bg-neutral-100 text-neutral-900'
                     : 'bg-white text-neutral-700 hover:bg-neutral-50',
-                  useShopify && !value.exists && 'cursor-not-allowed opacity-40',
+                  useShopify &&
+                    !value.exists &&
+                    'cursor-not-allowed opacity-40',
                 )}
               >
                 {value.name}

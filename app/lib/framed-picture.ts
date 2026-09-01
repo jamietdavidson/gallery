@@ -189,6 +189,7 @@ function getReferenceFrameFromMetafield(frameInches: number | undefined) {
 
 export type PrintVariantRef = {
   id?: string;
+  price?: {amount: string; currencyCode: string} | null;
   metafields?: VariantMetafield[] | null;
   selectedOptions?: Array<{name: string; value: string}>;
 };
@@ -298,10 +299,13 @@ export function resolveCanonicalPrintDimensions(
 
 /** Build bordered+framed print spec from Shopify variant metafields (Airtable source of truth). */
 export function getFramedPictureSpecFromVariantMetafields(
-  variant: {
-    metafields?: VariantMetafield[] | null;
-    selectedOptions?: Array<{name: string; value: string}>;
-  } | null | undefined,
+  variant:
+    | {
+        metafields?: VariantMetafield[] | null;
+        selectedOptions?: Array<{name: string; value: string}>;
+      }
+    | null
+    | undefined,
 ): FramedPictureSizeSpec | null {
   const rawShortSide = parseInchesMetafield(
     getVariantPrintMetafield(variant, 'short_inches'),
@@ -544,7 +548,10 @@ export function getDetailMaxHeightFillForNamedSize(
   );
 }
 
-export const FRAMED_PICTURE_SIZE_LABELS: Record<FramedPictureNamedSize, string> = {
+export const FRAMED_PICTURE_SIZE_LABELS: Record<
+  FramedPictureNamedSize,
+  string
+> = {
   small: 'Small',
   medium: 'Medium',
   large: 'Large',
@@ -879,7 +886,8 @@ function scaleFramedPictureDimensions(
 
   if (longSideCqi === 0) return dimensions;
   if (options?.onlyDown && longSideCqi <= targetLongSideCqi) return dimensions;
-  if (!options?.onlyDown && longSideCqi === targetLongSideCqi) return dimensions;
+  if (!options?.onlyDown && longSideCqi === targetLongSideCqi)
+    return dimensions;
 
   const scale = targetLongSideCqi / longSideCqi;
   return {
@@ -945,39 +953,45 @@ export function computeFramedPictureSize(
   const pictureAspect = pictureWidth / pictureHeight;
 
   const maxWidthCqi =
-    options?.maxWidthCqi ??
-    getMaxWidthCqiForNamedSize(options?.namedSize);
+    options?.maxWidthCqi ?? getMaxWidthCqiForNamedSize(options?.namedSize);
 
   // Tier caps use bordered+framed layout so mount/frame toggles never rescale the print.
-  ({frameCqi: layoutFrameCqi, paddingCqi: layoutPaddingCqi, pictureWidthCqi} =
-    fitFramedPictureToContainer(
+  ({
+    frameCqi: layoutFrameCqi,
+    paddingCqi: layoutPaddingCqi,
+    pictureWidthCqi,
+  } = fitFramedPictureToContainer(
+    {
+      frameCqi: layoutFrameCqi,
+      paddingCqi: layoutPaddingCqi,
+      pictureWidthCqi,
+      pictureAspect,
+    },
+    maxWidthCqi,
+    layoutVerticalOuterAspect,
+  ));
+
+  if (options?.maxLongSideCqi !== undefined) {
+    ({
+      frameCqi: layoutFrameCqi,
+      paddingCqi: layoutPaddingCqi,
+      pictureWidthCqi,
+    } = scaleFramedPictureDimensions(
       {
         frameCqi: layoutFrameCqi,
         paddingCqi: layoutPaddingCqi,
         pictureWidthCqi,
         pictureAspect,
       },
-      maxWidthCqi,
-      layoutVerticalOuterAspect,
+      options.maxLongSideCqi,
     ));
-
-  if (options?.maxLongSideCqi !== undefined) {
-    ({frameCqi: layoutFrameCqi, paddingCqi: layoutPaddingCqi, pictureWidthCqi} =
-      scaleFramedPictureDimensions(
-        {
-          frameCqi: layoutFrameCqi,
-          paddingCqi: layoutPaddingCqi,
-          pictureWidthCqi,
-          pictureAspect,
-        },
-        options.maxLongSideCqi,
-      ));
   }
 
   let frameCqi = isUnframed ? 0 : layoutFrameCqi;
   let paddingCqi = isFullBleed ? 0 : layoutPaddingCqi;
 
-  const containerFill = options?.containerFill ?? FRAMED_PICTURE_DEFAULT_CONTAINER_FILL;
+  const containerFill =
+    options?.containerFill ?? FRAMED_PICTURE_DEFAULT_CONTAINER_FILL;
   if (containerFill !== FRAMED_PICTURE_DEFAULT_CONTAINER_FILL) {
     ({frameCqi, paddingCqi, pictureWidthCqi} = scaleToOuterContainerFill(
       {frameCqi, paddingCqi, pictureWidthCqi, pictureAspect},
@@ -1058,9 +1072,11 @@ export function resolveNamedFramedPictureSize(
   if (!label) return undefined;
 
   const normalized = label.toLowerCase().trim().replace(/\s+/g, ' ');
-  const byLabel = (Object.entries(FRAMED_PICTURE_SIZE_LABELS) as Array<
-    [FramedPictureNamedSize, string]
-  >).find(([, name]) => name.toLowerCase() === normalized);
+  const byLabel = (
+    Object.entries(FRAMED_PICTURE_SIZE_LABELS) as Array<
+      [FramedPictureNamedSize, string]
+    >
+  ).find(([, name]) => name.toLowerCase() === normalized);
   if (byLabel) return byLabel[0];
 
   /** Airtable size tiers that differ from legacy catalog keys. */
@@ -1117,9 +1133,7 @@ export function formatPrintSizeOptionLabel(
 }
 
 /** Map a Shopify frame option label to a preview frame color. */
-export function resolveFrameColorFromOption(
-  value?: string | null,
-): FrameColor {
+export function resolveFrameColorFromOption(value?: string | null): FrameColor {
   const normalized = value?.toLowerCase().trim() ?? '';
   if (normalized.includes('white')) return 'white';
   if (normalized.includes('natural') || normalized.includes('wood')) {
@@ -1140,7 +1154,10 @@ export function resolveMountFromOption(
 }
 
 function getSelectedOptionValue(
-  variant: {selectedOptions?: Array<{name: string; value: string}>} | null | undefined,
+  variant:
+    | {selectedOptions?: Array<{name: string; value: string}>}
+    | null
+    | undefined,
   optionName: string,
 ) {
   return variant?.selectedOptions?.find(
@@ -1150,18 +1167,22 @@ function getSelectedOptionValue(
 
 /** @param {{selectedOptions?: Array<{name: string; value: string}>; title?: string | null}} variant */
 export function getFramedPictureSpecFromVariant(
-  variant: {
-    metafields?: VariantMetafield[] | null;
-    selectedOptions?: Array<{name: string; value: string}>;
-    title?: string | null;
-  } | null | undefined,
+  variant:
+    | {
+        metafields?: VariantMetafield[] | null;
+        selectedOptions?: Array<{name: string; value: string}>;
+        title?: string | null;
+      }
+    | null
+    | undefined,
   namedSize?: FramedPictureNamedSize,
   overrides?: {frame?: string | null; mount?: string | null},
   context?: {variantPool?: PrintVariantRef[]},
 ): FramedPictureSizeSpec {
   const fromMetafields = getFramedPictureSpecFromVariantMetafields(variant);
   const sizeKey = namedSize ?? getFramedSizeFromVariant(variant ?? {});
-  const spec: FramedPictureSizeSpec = fromMetafields ??
+  const spec: FramedPictureSizeSpec =
+    fromMetafields ??
     applyPartialVariantPrintMetafields(variant, {
       ...FRAMED_PICTURE_SIZES[sizeKey],
       referencePadding: FRAMED_PICTURE_SIZES[sizeKey].padding,
@@ -1310,6 +1331,16 @@ function sizeRankForSizingGuide(sizeLabel: string) {
   return idx >= 0 ? idx : 999;
 }
 
+/** Match a loaded variant to the current size / frame / mount selection. */
+export function resolvePrintVariantInPool(
+  variantPool: PrintVariantRef[],
+  sizeLabel: string,
+  frameLabel: string,
+  mountLabel: string,
+) {
+  return findVariantInPool(variantPool, sizeLabel, frameLabel, mountLabel);
+}
+
 function findVariantInPool(
   variantPool: PrintVariantRef[],
   sizeLabel: string,
@@ -1427,8 +1458,7 @@ export function buildPrintSizingGuideVariantRows({
                 resolveMountFromOption(mountLabel) === 'fullBleed'
                   ? 0
                   : template.padding,
-              frame:
-                frameExistence === 'No Frame' ? 0 : template.frame,
+              frame: frameExistence === 'No Frame' ? 0 : template.frame,
             };
 
         rows.push({
