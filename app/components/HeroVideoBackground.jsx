@@ -25,14 +25,33 @@ export function HeroVideoBackground({
     const video = videoRef.current;
     if (!video) return;
 
-    const applyPlaybackRate = () => {
+    video.muted = true;
+    video.defaultMuted = true;
+    video.playsInline = true;
+    video.controls = false;
+
+    const ensurePlaying = () => {
       video.playbackRate = playbackRate;
+      if (video.paused) {
+        void video.play().catch(() => {});
+      }
     };
 
-    applyPlaybackRate();
-    video.addEventListener('loadedmetadata', applyPlaybackRate);
-    return () => video.removeEventListener('loadedmetadata', applyPlaybackRate);
-  }, [playbackRate]);
+    ensurePlaying();
+    video.addEventListener('loadedmetadata', ensurePlaying);
+    video.addEventListener('canplay', ensurePlaying);
+
+    const onVisibilityChange = () => {
+      if (!document.hidden) ensurePlaying();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      video.removeEventListener('loadedmetadata', ensurePlaying);
+      video.removeEventListener('canplay', ensurePlaying);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [playbackRate, src]);
 
   return (
     <video
@@ -42,7 +61,16 @@ export function HeroVideoBackground({
       loop
       muted
       playsInline
-      className={cn('absolute inset-0 h-full w-full object-cover', className)}
+      controls={false}
+      disablePictureInPicture
+      disableRemotePlayback
+      controlsList="nodownload noplaybackrate noremoteplayback nofullscreen"
+      preload="auto"
+      tabIndex={-1}
+      className={cn(
+        'hero-video-background pointer-events-none absolute inset-0 h-full w-full object-cover',
+        className,
+      )}
       aria-hidden="true"
     >
       <source src={src} type="video/mp4" />

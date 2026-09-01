@@ -1,8 +1,8 @@
-@import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
-@import "./fonts.css";
-@import "overlayscrollbars/styles/overlayscrollbars.css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+@import './fonts.css';
+@import 'overlayscrollbars/styles/overlayscrollbars.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -97,7 +97,9 @@
     .search-filters-aside {
       position: sticky;
       top: calc(var(--header-height) + var(--search-chrome-below-header));
-      max-height: calc(100dvh - var(--header-height) - var(--search-chrome-below-header));
+      max-height: calc(
+        100dvh - var(--header-height) - var(--search-chrome-below-header)
+      );
       align-self: flex-start;
       overflow-y: auto;
     }
@@ -228,4 +230,31 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+}
+
+/* Background hero videos — autoplay only, no native mobile controls overlay */
+.hero-video-background {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.hero-video-background::-webkit-media-controls {
+  display: none !important;
+}
+
+.hero-video-background::-webkit-media-controls-enclosure {
+  display: none !important;
+}
+
+.hero-video-background::-webkit-media-controls-panel {
+  display: none !important;
+}
+
+.hero-video-background::-webkit-media-controls-play-button {
+  display: none !important;
+}
+
+.hero-video-background::-webkit-media-controls-start-playback-button {
+  display: none !important;
 }
